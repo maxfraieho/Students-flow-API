@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -73,6 +74,7 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import LaunchIcon from "@mui/icons-material/Launch";
+import studentFlowLogo from "./assets/studentflow-logo.png";
 import type {
   Account,
   AuditItem,
@@ -510,12 +512,39 @@ function StudentsPage() {
   });
 
   const activateMutation = useMutation({
-    mutationFn: activateStudent,
+    mutationFn: async (studentId: string) => {
+      try {
+        await activateStudent(studentId);
+      } catch (error) {
+        if (!(axios.isAxiosError(error) && error.response?.status === 409)) {
+          throw error;
+        }
+
+        const activeFromList = (studentsQuery.data || []).find(
+          (student) => student.status === "active" && student.id !== studentId,
+        );
+
+        const activeStudent = activeFromList || (await fetchActiveStudent());
+        if (activeStudent?.id && activeStudent.id !== studentId) {
+          await updateStudent({ id: activeStudent.id, status: "paused" });
+        }
+
+        await activateStudent(studentId);
+      }
+    },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["students"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["students"] }),
+        queryClient.invalidateQueries({ queryKey: ["students", "active"] }),
+      ]);
       showToast("Студента активовано");
     },
-    onError: () => showToast("Помилка активації", "error"),
+    onError: (error) => {
+      const detail = axios.isAxiosError(error)
+        ? (error.response?.data as { detail?: string } | undefined)?.detail
+        : undefined;
+      showToast(detail || "Помилка активації", "error");
+    },
   });
 
   const archiveMutation = useMutation({
@@ -1853,9 +1882,17 @@ function AppShell() {
               <MenuIcon />
             </IconButton>
           )}
-          <Typography variant="h6" sx={{ fontWeight: 700, flexGrow: 1 }}>
-            StudentFlow
-          </Typography>
+          <Stack direction="row" spacing={1.25} alignItems="center" sx={{ flexGrow: 1, minWidth: 0 }}>
+            <Box
+              component="img"
+              src={studentFlowLogo}
+              alt="StudentFlow — колективна робота та навчання з Lovable"
+              sx={{ width: 34, height: 34, objectFit: "contain", flexShrink: 0 }}
+            />
+            <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
+              StudentFlow
+            </Typography>
+          </Stack>
           <LiveChip live={live} />
           <IconButton color="inherit" sx={{ ml: 1 }} onClick={() => navigate("/settings")}>
             <SettingsIcon />
