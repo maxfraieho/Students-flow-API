@@ -35,8 +35,8 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd backend && PYTHON_KEYRING_BACKEND=keyrings.alt.file.PlaintextKeyring python3.11 run.py"
-waitForPort = 8000
+args = "cd backend && PYTHON_KEYRING_BACKEND=keyrings.alt.file.PlaintextKeyring PORT=8050 python3.11 run.py"
+waitForPort = 8050
 
 [agent]
 stack = "PNPM_WORKSPACE"
