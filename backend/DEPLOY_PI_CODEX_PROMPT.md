@@ -18,7 +18,7 @@ INSTALL_DIR="$HOME/studentflow-api"
 BACKEND_DIR="$INSTALL_DIR/backend"
 VENV="$INSTALL_DIR/.venv"
 SERVICE="studentflow-api"
-PORT=8000
+PORT=8050
 LINUX_USER="$(whoami)"
 HOME_DIR="$HOME"
 ```
@@ -116,7 +116,7 @@ Read the error, fix it, and restart.
 
 Health check:
 ```bash
-curl -s http://localhost:8000/api/health
+curl -s http://localhost:8050/api/health
 ```
 Must return JSON. If connection refused, wait 3 more seconds and retry.
 
@@ -153,7 +153,7 @@ cat > /tmp/students.json << 'ENDJSON'
 }
 ENDJSON
 
-curl -s -X POST http://localhost:8000/api/students/bulk-import \
+curl -s -X POST http://localhost:8050/api/students/bulk-import \
   -H "Content-Type: application/json" \
   -d @/tmp/students.json
 ```
@@ -172,11 +172,11 @@ CANONICAL_REMOTE="https://github.com/maxfraieho/Students-flow-API.git"
 sudo mkdir -p "$CANONICAL_PATH"
 sudo chown "$(whoami):$(whoami)" "$CANONICAL_PATH"
 
-curl -s -X PUT http://localhost:8000/api/settings/canonical_repo_path \
+curl -s -X PUT http://localhost:8050/api/settings/canonical_repo_path \
   -H "Content-Type: application/json" \
   -d "{\"value\": \"$CANONICAL_PATH\"}"
 
-curl -s -X PUT http://localhost:8000/api/settings/canonical_remote_url \
+curl -s -X PUT http://localhost:8050/api/settings/canonical_remote_url \
   -H "Content-Type: application/json" \
   -d "{\"value\": \"$CANONICAL_REMOTE\"}"
 
@@ -192,7 +192,7 @@ Verify: `ls "$CANONICAL_PATH"` shows repo files.
 Run each check and print PASS or FAIL:
 
 ```bash
-BASE="http://localhost:8000"
+BASE="http://localhost:8050"
 
 pass_fail() {
   local label="$1" result="$2" expect="$3"
@@ -224,8 +224,8 @@ Print exactly this block (fill in actual values):
   StudentFlow backend — deployment complete
 ============================================
   Service : studentflow-api (active)
-  API     : http://localhost:8000
-  Docs    : http://localhost:8000/api/docs
+  API     : http://localhost:8050
+  Docs    : http://localhost:8050/api/docs
   DB      : ~/.studentflow/studentflow.db
   Students: 20 active in database
   Keyring : keyrings.cryptfile (headless)

@@ -60,7 +60,7 @@ EOF
 
 You can also POST to `/api/credentials` once the server is running:
 ```bash
-curl -X POST http://localhost:8000/api/credentials \
+curl -X POST http://localhost:8050/api/credentials \
   -H "Content-Type: application/json" \
   -d '{"account_id":"<account_uuid>","secret_kind":"pat","value":"YOUR_GITHUB_TOKEN_HERE"}'
 ```
@@ -78,7 +78,7 @@ tunnel: <TUNNEL_ID>
 credentials-file: /home/pi/.cloudflared/<TUNNEL_ID>.json
 ingress:
   - hostname: studentflow.yourdomain.com
-    service: http://localhost:8000
+    service: http://localhost:8050
   - service: http_status:404
 ```
 
@@ -149,23 +149,23 @@ sudo systemctl status studentflow-api
 
 ```bash
 # Health check
-curl http://localhost:8000/api/health
+curl http://localhost:8050/api/health
 
 # Create a student
-curl -s -X POST http://localhost:8000/api/students \
+curl -s -X POST http://localhost:8050/api/students \
   -H "Content-Type: application/json" \
   -d '{"full_name":"Bohdan Marchenko","status":"active","queue_position":1,"student_number":1}'
 
 # List students
-curl http://localhost:8000/api/students
+curl http://localhost:8050/api/students
 
 # Check active student
-curl http://localhost:8000/api/students/active
+curl http://localhost:8050/api/students/active
 ```
 
 ## 10. Adding real student data
 
-Once the API is running, use the Swagger UI at `http://localhost:8000/api/docs` or the curl commands above to:
+Once the API is running, use the Swagger UI at `http://localhost:8050/api/docs` or the curl commands above to:
 
 1. **POST /api/students** — create each student record
 2. **POST /api/accounts** — create a GitHub/GitLab account for each student

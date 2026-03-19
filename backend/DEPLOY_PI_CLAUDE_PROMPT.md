@@ -11,7 +11,7 @@ REPO_URL="https://github.com/maxfraieho/Students-flow-API.git"
 INSTALL_DIR="$HOME/studentflow-api"
 BACKEND_DIR="$INSTALL_DIR/backend"
 SERVICE_NAME="studentflow-api"
-API_PORT=8000
+API_PORT=8050
 VENV="$INSTALL_DIR/.venv"
 ```
 
@@ -205,8 +205,8 @@ When all checks pass, print a summary:
 ```
 StudentFlow backend deployed successfully.
   Service:  systemctl status studentflow-api
-  API:      http://localhost:8000
-  Docs:     http://localhost:8000/api/docs
+  API:      http://localhost:8050
+  Docs:     http://localhost:8050/api/docs
   DB:       ~/.studentflow/studentflow.db
   Students: 20 active
 ```
