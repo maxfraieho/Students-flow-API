@@ -74,7 +74,6 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import LaunchIcon from "@mui/icons-material/Launch";
-import studentFlowLogo from "./assets/studentflow-logo.png";
 import type {
   Account,
   AuditItem,
