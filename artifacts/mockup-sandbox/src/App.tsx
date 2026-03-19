@@ -417,7 +417,7 @@ function DashboardPage({ setLive }: { setLive: (v: boolean) => void }) {
                     variant="contained"
                     color="secondary"
                     onClick={() => handoffMutation.mutate()}
-                    disabled={handoffMutation.isPending}
+                    disabled={handoffMutation.isPending || nextQuery.isLoading || !hasNextStudent}
                   >
                     Наступний студент
                   </Button>
