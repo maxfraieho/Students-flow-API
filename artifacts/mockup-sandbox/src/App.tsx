@@ -1839,7 +1839,14 @@ function AppShell() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      <AppBar position="fixed" sx={{ zIndex: (t) => t.zIndex.drawer + 1 }}>
+      <AppBar
+        position="fixed"
+        sx={{
+          zIndex: (t) => t.zIndex.drawer + 1,
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          ml: { md: `${drawerWidth}px` },
+        }}
+      >
         <Toolbar>
           {isMobile && (
             <IconButton color="inherit" edge="start" sx={{ mr: 1 }} onClick={() => setDrawerOpen(true)}>
@@ -1850,7 +1857,7 @@ function AppShell() {
             StudentFlow
           </Typography>
           <LiveChip live={live} />
-          <IconButton color="inherit" sx={{ ml: 1 }} onClick={() => navigate("/settings")}> 
+          <IconButton color="inherit" sx={{ ml: 1 }} onClick={() => navigate("/settings")}>
             <SettingsIcon />
           </IconButton>
         </Toolbar>
@@ -1862,7 +1869,15 @@ function AppShell() {
           {drawerContent}
         </Drawer>
       ) : (
-        <Drawer variant="permanent" open sx={{ "& .MuiDrawer-paper": { width: drawerWidth, boxSizing: "border-box" } }}>
+        <Drawer
+          variant="permanent"
+          open
+          sx={{
+            width: drawerWidth,
+            flexShrink: 0,
+            "& .MuiDrawer-paper": { width: drawerWidth, boxSizing: "border-box" },
+          }}
+        >
           {drawerContent}
         </Drawer>
       )}
