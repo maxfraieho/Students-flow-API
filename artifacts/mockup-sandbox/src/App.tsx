@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -73,6 +74,7 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import LaunchIcon from "@mui/icons-material/Launch";
+import studentFlowLogo from "./assets/studentflow-logo.png";
 import type {
   Account,
   AuditItem,
