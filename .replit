@@ -1,4 +1,4 @@
-modules = ["nodejs-24"]
+modules = ["nodejs-24", "python-3.11"]
 
 [[artifacts]]
 id = "artifacts/api-server"
@@ -30,13 +30,13 @@ args = "Backend (FastAPI)"
 name = "Backend (FastAPI)"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd backend && pip install -r requirements.txt -q && python run.py"
-waitForPort = 8000
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd backend && PYTHON_KEYRING_BACKEND=keyrings.alt.file.PlaintextKeyring python3.11 run.py"
+waitForPort = 8000
 
 [agent]
 stack = "PNPM_WORKSPACE"
@@ -45,3 +45,7 @@ expertMode = true
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
+
+[nix]
+channel = "stable-25_05"
+packages = ["libxcrypt"]

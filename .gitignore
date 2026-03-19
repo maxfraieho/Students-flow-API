@@ -55,3 +55,9 @@ Thumbs.db
 *.env
 backend/.env
 worker/.dev.vars
+
+# Replit Python module auto-generated files
+main.py
+pyproject.toml
+uv.lock
+.pythonlibs/
