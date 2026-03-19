@@ -7,10 +7,14 @@ export function getRuntimeConfig() {
   const storedUrl = localStorage.getItem(API_URL_KEY)?.trim();
   const storedToken = localStorage.getItem(API_TOKEN_KEY)?.trim();
 
+  const isLocalDevHost =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
+
   const apiUrl =
     storedUrl ||
     import.meta.env.VITE_API_URL ||
-    window.location.origin;
+    (isLocalDevHost ? "http://127.0.0.1:8050" : window.location.origin);
 
   const apiToken = storedToken || import.meta.env.VITE_API_TOKEN || "";
 
@@ -52,7 +56,19 @@ export async function getStudents() {
 }
 
 export async function getCurrentSync() {
-  return requestJson<SyncCurrentResponse>("/api/sync/current");
+  let activeStudent: Student | null = null;
+  try {
+    activeStudent = await requestJson<Student>("/api/students/active");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes("HTTP 404")) {
+      throw error;
+    }
+  }
+  return {
+    active_student: activeStudent ?? null,
+    sync_count_today: 0,
+  } satisfies SyncCurrentResponse;
 }
 
 export function getBroadcastUrl() {
