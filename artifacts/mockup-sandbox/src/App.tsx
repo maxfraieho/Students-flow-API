@@ -103,6 +103,7 @@ import {
   fetchBackendSettings,
   fetchCanonicalRepository,
   fetchCredentials,
+  fetchNextStudent,
   fetchPromptById,
   fetchPrompts,
   fetchRepositories,
@@ -252,6 +253,7 @@ function DashboardPage({ setLive }: { setLive: (v: boolean) => void }) {
 
   const studentsQuery = useQuery({ queryKey: ["students"], queryFn: () => fetchStudents() });
   const activeQuery = useQuery({ queryKey: ["students", "active"], queryFn: fetchActiveStudent });
+  const nextQuery = useQuery({ queryKey: ["students", "next"], queryFn: fetchNextStudent });
   const jobsQuery = useQuery({ queryKey: ["sync", "jobs"], queryFn: fetchSyncJobs, refetchInterval: 15000 });
   const canonicalQuery = useQuery({ queryKey: ["repositories", "canonical"], queryFn: fetchCanonicalRepository });
 
@@ -295,16 +297,50 @@ function DashboardPage({ setLive }: { setLive: (v: boolean) => void }) {
   });
 
   const handoffMutation = useMutation({
-    mutationFn: triggerHandoff,
+    mutationFn: async () => {
+      try {
+        return await triggerHandoff();
+      } catch (error) {
+        const detail = axios.isAxiosError(error)
+          ? (error.response?.data as { detail?: string } | undefined)?.detail?.toLowerCase() || ""
+          : "";
+
+        if (detail.includes("no next student")) {
+          throw error;
+        }
+
+        const fallbackNext =
+          (await fetchNextStudent()) ||
+          (studentsQuery.data || []).find((student) => student.status === "paused" && student.id !== (activeQuery.data?.id || sseStudent?.id));
+
+        if (!fallbackNext?.id) {
+          throw error;
+        }
+
+        const currentId = sseStudent?.id || activeQuery.data?.id || stableActiveStudent?.id;
+        if (currentId && currentId !== fallbackNext.id) {
+          await updateStudent({ id: currentId, status: "paused" });
+        }
+
+        await activateStudent(fallbackNext.id);
+        return { fallback: true };
+      }
+    },
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["students"] }),
         queryClient.invalidateQueries({ queryKey: ["students", "active"] }),
+        queryClient.invalidateQueries({ queryKey: ["students", "next"] }),
         queryClient.invalidateQueries({ queryKey: ["sync", "jobs"] }),
       ]);
       showToast("Передачу виконано");
     },
-    onError: () => showToast("Не вдалося виконати передачу", "error"),
+    onError: (error) => {
+      const detail = axios.isAxiosError(error)
+        ? (error.response?.data as { detail?: string } | undefined)?.detail
+        : undefined;
+      showToast(detail || "Не вдалося виконати передачу", "error");
+    },
   });
 
   const quickSyncMutation = useMutation({
@@ -325,8 +361,11 @@ function DashboardPage({ setLive }: { setLive: (v: boolean) => void }) {
         .sort((a, b) => (a.queue_position || 0) - (b.queue_position || 0)),
     [studentsQuery.data],
   );
+  const hasNextStudent =
+    Boolean(nextQuery.data?.id) ||
+    queue.some((student) => student.status === "paused" && student.id !== activeStudent?.id);
 
-  const activeError = studentsQuery.error || activeQuery.error || jobsQuery.error;
+  const activeError = studentsQuery.error || activeQuery.error || nextQuery.error || jobsQuery.error;
 
   return (
     <Stack spacing={2.5}>
@@ -378,7 +417,7 @@ function DashboardPage({ setLive }: { setLive: (v: boolean) => void }) {
                     variant="contained"
                     color="secondary"
                     onClick={() => handoffMutation.mutate()}
-                    disabled={handoffMutation.isPending}
+                    disabled={handoffMutation.isPending || nextQuery.isLoading || !hasNextStudent}
                   >
                     Наступний студент
                   </Button>
