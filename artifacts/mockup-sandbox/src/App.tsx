@@ -1857,7 +1857,23 @@ function AppShell() {
 
   const drawerContent = (
     <Box sx={{ width: drawerWidth }}>
-      <Toolbar />
+      <Box
+        sx={{
+          px: 2,
+          py: 1.5,
+          minHeight: 72,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-start",
+        }}
+      >
+        <Box
+          component="img"
+          src={studentFlowLogo}
+          alt="StudentFlow — колективна робота та навчання з Lovable"
+          sx={{ width: 108, height: 40, objectFit: "contain" }}
+        />
+      </Box>
       <Divider />
       <List>
         {NAV_ITEMS.map((item) => (
