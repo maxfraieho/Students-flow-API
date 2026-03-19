@@ -667,15 +667,26 @@ function StudentsPage() {
                   <TableCell>{student.queue_position ?? "—"}</TableCell>
                   <TableCell>{student.notes?.slice(0, 60) || "—"}</TableCell>
                   <TableCell>
-                    <IconButton onClick={() => openEdit(student)}>
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton onClick={() => activateMutation.mutate(student.id)}>
-                      <PlayArrowIcon />
-                    </IconButton>
-                    <IconButton onClick={() => archiveMutation.mutate(student.id)}>
-                      <DeleteIcon />
-                    </IconButton>
+                    <Tooltip title="Редагувати">
+                      <IconButton onClick={() => openEdit(student)}>
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Синхронізувати з master">
+                      <IconButton onClick={() => activateMutation.mutate(student.id)}>
+                        <PlayArrowIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Вигрузити в master">
+                      <IconButton onClick={() => toCanonicalMutation.mutate(student.id)}>
+                        <UploadFileIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Архівувати">
+                      <IconButton onClick={() => archiveMutation.mutate(student.id)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}
