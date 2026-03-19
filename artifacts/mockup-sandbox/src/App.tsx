@@ -17,8 +17,18 @@ const navItems: Array<{ path: RoutePath; label: string }> = [
   { path: "/settings", label: "Налаштування" },
 ];
 
+function getBasePath(): string {
+  return import.meta.env.BASE_URL.replace(/\/$/, "");
+}
+
 function getRouteFromLocation(): RoutePath {
-  const path = window.location.pathname as RoutePath;
+  const basePath = getBasePath();
+  const pathname = window.location.pathname;
+  const path = (
+    basePath && pathname.startsWith(basePath)
+      ? pathname.slice(basePath.length) || "/"
+      : pathname
+  ) as RoutePath;
   return navItems.some((item) => item.path === path) ? path : "/";
 }
 
@@ -323,7 +333,9 @@ function App() {
 
   const go = (path: RoutePath) => {
     if (path === route) return;
-    window.history.pushState({}, "", path);
+    const basePath = getBasePath();
+    const target = path === "/" ? `${basePath || "/"}` : `${basePath}${path}`;
+    window.history.pushState({}, "", target);
     setRoute(path);
   };
 
