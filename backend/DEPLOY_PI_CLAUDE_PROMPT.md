@@ -68,6 +68,7 @@ After=network.target
 User=pi
 WorkingDirectory=/home/pi/studentflow-api/backend
 Environment=PYTHON_KEYRING_BACKEND=keyrings.cryptfile.cryptfile.CryptFileKeyring
+Environment=KEYRING_CRYPTFILE_PASSWORD=REPLACE_WITH_YOUR_KEYRING_PASSWORD
 ExecStart=/home/pi/studentflow-api/.venv/bin/python run.py
 Restart=on-failure
 RestartSec=5

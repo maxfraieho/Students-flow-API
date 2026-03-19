@@ -89,6 +89,7 @@ After=network.target
 User=$LINUX_USER
 WorkingDirectory=$HOME_DIR/studentflow-api/backend
 Environment=PYTHON_KEYRING_BACKEND=keyrings.cryptfile.cryptfile.CryptFileKeyring
+Environment=KEYRING_CRYPTFILE_PASSWORD=REPLACE_WITH_YOUR_KEYRING_PASSWORD
 ExecStart=$HOME_DIR/studentflow-api/.venv/bin/python run.py
 Restart=on-failure
 RestartSec=5
