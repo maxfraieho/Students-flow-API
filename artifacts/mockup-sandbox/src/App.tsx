@@ -1747,7 +1747,45 @@ function SettingsPage() {
         <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
           API з'єднання
         </Typography>
-...
+        <Stack spacing={1.5}>
+          <TextField label="API URL" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} />
+          <TextField
+            label="API Token"
+            type={showToken ? "text" : "password"}
+            value={apiToken}
+            onChange={(e) => setApiToken(e.target.value)}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={() => setShowToken((v) => !v)}>
+                    {showToken ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="contained"
+              onClick={() => {
+                saveRuntimeConfig(apiUrl, apiToken);
+                showToast("Конфігурацію збережено");
+              }}
+            >
+              Зберегти
+            </Button>
+            <Button variant="outlined" onClick={() => checkMutation.mutate()}>
+              Перевірити з'єднання
+            </Button>
+          </Stack>
+        </Stack>
+      </Paper>
+
+      <Paper sx={{ p: 2.5 }}>
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
+          Налаштування бекенду
+        </Typography>
+
         {backendSettingsQuery.isLoading ? (
           <LoadingState />
         ) : backendSettingsQuery.error ? (
