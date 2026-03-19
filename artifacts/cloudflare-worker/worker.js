@@ -70,7 +70,6 @@ export default {
         JSON.stringify({
           error: "Bad Gateway",
           detail: "Could not reach the backend. The Raspberry Pi may be offline or the tunnel is down.",
-          message: err.message,
         }),
         {
           status: 502,

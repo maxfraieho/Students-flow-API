@@ -101,10 +101,7 @@ curl -i \
 
 Stop `cloudflared` on your Pi, then send any authenticated request — the Worker will return:
 ```json
-{
-  "error": "Bad Gateway",
-  "detail": "Could not reach the backend. The Raspberry Pi may be offline or the tunnel is down."
-}
+{ "error": "Bad Gateway", "detail": "Could not reach the backend. The Raspberry Pi may be offline or the tunnel is down." }
 ```
 
 ---
