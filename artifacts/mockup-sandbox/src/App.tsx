@@ -361,8 +361,11 @@ function DashboardPage({ setLive }: { setLive: (v: boolean) => void }) {
         .sort((a, b) => (a.queue_position || 0) - (b.queue_position || 0)),
     [studentsQuery.data],
   );
+  const hasNextStudent =
+    Boolean(nextQuery.data?.id) ||
+    queue.some((student) => student.status === "paused" && student.id !== activeStudent?.id);
 
-  const activeError = studentsQuery.error || activeQuery.error || jobsQuery.error;
+  const activeError = studentsQuery.error || activeQuery.error || nextQuery.error || jobsQuery.error;
 
   return (
     <Stack spacing={2.5}>
