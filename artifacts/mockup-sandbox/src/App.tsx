@@ -1,146 +1,358 @@
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  getBroadcastUrl,
+  getCurrentSync,
+  getHealth,
+  getRuntimeConfig,
+  getStudents,
+  saveRuntimeConfig,
+} from "./api";
+import type { Student } from "./types";
 
-import { modules as discoveredModules } from "./.generated/mockup-components";
+type RoutePath = "/" | "/dashboard" | "/settings";
 
-type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
+const navItems: Array<{ path: RoutePath; label: string }> = [
+  { path: "/", label: "Головна" },
+  { path: "/dashboard", label: "Дашборд" },
+  { path: "/settings", label: "Налаштування" },
+];
 
-function _resolveComponent(
-  mod: Record<string, unknown>,
-  name: string,
-): ComponentType | undefined {
-  const fns = Object.values(mod).filter(
-    (v) => typeof v === "function",
-  ) as ComponentType[];
+function getRouteFromLocation(): RoutePath {
+  const path = window.location.pathname as RoutePath;
+  return navItems.some((item) => item.path === path) ? path : "/";
+}
+
+function formatStudentName(student: Student | null | undefined) {
+  if (!student) return "—";
+  return student.full_name || student.github_login || student.id;
+}
+
+function LandingPage() {
   return (
-    (mod.default as ComponentType) ||
-    (mod.Preview as ComponentType) ||
-    (mod[name] as ComponentType) ||
-    fns[fns.length - 1]
+    <main className="mx-auto max-w-6xl space-y-10 p-6 md:p-10">
+      <section className="space-y-4">
+        <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl">
+          StudentFlow
+        </h1>
+        <p className="max-w-3xl text-lg text-muted-foreground">
+          Платформа для синхронізації студентів із GitHub, моніторингу черги та
+          контролю прогресу в реальному часі.
+        </p>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <article className="rounded-xl border border-border bg-card p-6">
+          <h2 className="text-2xl font-semibold text-card-foreground">Free</h2>
+          <p className="mt-2 text-muted-foreground">Базова синхронізація та черга.</p>
+          <ul className="mt-4 list-disc space-y-2 pl-5 text-card-foreground">
+            <li>До 100 sync/день</li>
+            <li>Live статус активного студента</li>
+            <li>Сторінка налаштувань API</li>
+          </ul>
+        </article>
+
+        <article className="rounded-xl border border-border bg-card p-6">
+          <h2 className="text-2xl font-semibold text-card-foreground">Pro</h2>
+          <p className="mt-2 text-muted-foreground">
+            Розширений контроль та пріоритетна обробка.
+          </p>
+          <ul className="mt-4 list-disc space-y-2 pl-5 text-card-foreground">
+            <li>Необмежена синхронізація</li>
+            <li>Детальна статистика по черзі</li>
+            <li>Пріоритетна підтримка</li>
+          </ul>
+        </article>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <article className="rounded-xl border border-border bg-card p-6">
+          <h2 className="text-xl font-semibold text-card-foreground">Завантаження</h2>
+          <p className="mt-2 text-muted-foreground">Windows, macOS, Linux.</p>
+        </article>
+        <article className="rounded-xl border border-border bg-card p-6">
+          <h2 className="text-xl font-semibold text-card-foreground">Open Source</h2>
+          <p className="mt-2 text-muted-foreground">
+            Повний код та інтеграції доступні для команди.
+          </p>
+        </article>
+      </section>
+    </main>
   );
 }
 
-function PreviewRenderer({
-  componentPath,
-  modules,
-}: {
-  componentPath: string;
-  modules: ModuleMap;
-}) {
-  const [Component, setComponent] = useState<ComponentType | null>(null);
+function DashboardPage() {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [activeStudent, setActiveStudent] = useState<Student | null>(null);
+  const [syncCountToday, setSyncCountToday] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    let mounted = true;
 
-    setComponent(null);
-    setError(null);
-
-    async function loadComponent(): Promise<void> {
-      const key = `./components/mockups/${componentPath}.tsx`;
-      const loader = modules[key];
-      if (!loader) {
-        setError(`No component found at ${componentPath}.tsx`);
-        return;
-      }
+    async function loadData() {
+      setLoading(true);
+      setError(null);
 
       try {
-        const mod = await loader();
-        if (cancelled) {
-          return;
-        }
-        const name = componentPath.split("/").pop()!;
-        const comp = _resolveComponent(mod, name);
-        if (!comp) {
-          setError(
-            `No exported React component found in ${componentPath}.tsx\n\nMake sure the file has at least one exported function component.`,
-          );
-          return;
-        }
-        setComponent(() => comp);
-      } catch (e) {
-        if (cancelled) {
-          return;
-        }
+        const [studentsRes, currentRes] = await Promise.all([
+          getStudents(),
+          getCurrentSync(),
+        ]);
 
-        const message = e instanceof Error ? e.message : String(e);
-        setError(`Failed to load preview.\n${message}`);
+        if (!mounted) return;
+
+        setStudents(studentsRes);
+        setActiveStudent(currentRes.active_student ?? null);
+        setSyncCountToday(currentRes.sync_count_today ?? 0);
+      } catch (loadError) {
+        if (!mounted) return;
+        const message =
+          loadError instanceof Error ? loadError.message : "Невідома помилка";
+        setError(`Не вдалося завантажити дані: ${message}`);
+      } finally {
+        if (mounted) setLoading(false);
       }
     }
 
-    void loadComponent();
+    void loadData();
 
     return () => {
-      cancelled = true;
+      mounted = false;
     };
-  }, [componentPath, modules]);
+  }, []);
 
-  if (error) {
-    return (
-      <pre style={{ color: "red", padding: "2rem", fontFamily: "system-ui" }}>
-        {error}
-      </pre>
-    );
-  }
+  useEffect(() => {
+    const eventSource = new EventSource(getBroadcastUrl());
 
-  if (!Component) return null;
+    eventSource.onmessage = (event) => {
+      try {
+        const parsed = JSON.parse(event.data) as {
+          active_student?: Student | null;
+          student?: Student | null;
+        };
+        setActiveStudent(parsed.active_student ?? parsed.student ?? null);
+      } catch {
+        setActiveStudent(null);
+      }
+    };
 
-  return <Component />;
-}
+    eventSource.onerror = () => {
+      eventSource.close();
+    };
 
-function getBasePath(): string {
-  return import.meta.env.BASE_URL.replace(/\/$/, "");
-}
+    return () => {
+      eventSource.close();
+    };
+  }, []);
 
-function getPreviewExamplePath(): string {
-  const basePath = getBasePath();
-  return `${basePath}/preview/ComponentName`;
-}
+  const queue = useMemo(
+    () => students.filter((student) => student.id !== activeStudent?.id),
+    [students, activeStudent?.id],
+  );
 
-function Gallery() {
+  const progress = Math.min(100, Math.round((syncCountToday / 100) * 100));
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
-      <div className="text-center max-w-md">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-3">
-          Component Preview Server
-        </h1>
-        <p className="text-gray-500 mb-4">
-          This server renders individual components for the workspace canvas.
-        </p>
-        <p className="text-sm text-gray-400">
-          Access component previews at{" "}
-          <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
-            {getPreviewExamplePath()}
-          </code>
-        </p>
-      </div>
-    </div>
+    <main className="mx-auto max-w-6xl space-y-6 p-6 md:p-10">
+      <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+
+      {error && (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-destructive">
+          {error}
+        </div>
+      )}
+
+      <section className="grid gap-4 md:grid-cols-3">
+        <article className="rounded-xl border border-border bg-card p-5">
+          <p className="text-sm text-muted-foreground">Активний студент</p>
+          <p className="mt-2 text-xl font-semibold text-card-foreground">
+            {loading ? "Завантаження..." : formatStudentName(activeStudent)}
+          </p>
+        </article>
+
+        <article className="rounded-xl border border-border bg-card p-5">
+          <p className="text-sm text-muted-foreground">У черзі</p>
+          <p className="mt-2 text-xl font-semibold text-card-foreground">{queue.length}</p>
+        </article>
+
+        <article className="rounded-xl border border-border bg-card p-5">
+          <p className="text-sm text-muted-foreground">Sync сьогодні</p>
+          <p className="mt-2 text-xl font-semibold text-card-foreground">{syncCountToday}</p>
+        </article>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-5">
+        <h2 className="text-xl font-semibold text-card-foreground">Free tier</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Використано {progress}% із добового ліміту.</p>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full bg-primary transition-all"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-5">
+        <h2 className="text-xl font-semibold text-card-foreground">Черга студентів</h2>
+        {loading ? (
+          <p className="mt-3 text-muted-foreground">Завантаження списку...</p>
+        ) : queue.length === 0 ? (
+          <p className="mt-3 text-muted-foreground">Черга порожня.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {queue.map((student, index) => (
+              <li
+                key={student.id}
+                className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2"
+              >
+                <span className="text-foreground">{formatStudentName(student)}</span>
+                <span className="rounded-full bg-primary/10 px-2 py-1 text-xs text-primary">
+                  #{index + 1}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </main>
   );
 }
 
-function getPreviewPath(): string | null {
-  const basePath = getBasePath();
-  const { pathname } = window.location;
-  const local =
-    basePath && pathname.startsWith(basePath)
-      ? pathname.slice(basePath.length) || "/"
-      : pathname;
-  const match = local.match(/^\/preview\/(.+)$/);
-  return match ? match[1] : null;
+function SettingsPage() {
+  const runtime = getRuntimeConfig();
+  const [apiUrl, setApiUrl] = useState(runtime.apiUrl);
+  const [apiToken, setApiToken] = useState(runtime.apiToken);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [statusType, setStatusType] = useState<"ok" | "error" | null>(null);
+
+  const save = () => {
+    saveRuntimeConfig(apiUrl, apiToken);
+    setStatusType("ok");
+    setStatusMessage("Налаштування збережено.");
+  };
+
+  const checkConnection = async () => {
+    try {
+      saveRuntimeConfig(apiUrl, apiToken);
+      const health = await getHealth();
+      const isOk = health.status === "ok" || health.healthy === true;
+      setStatusType(isOk ? "ok" : "error");
+      setStatusMessage(isOk ? "Зʼєднання успішне." : "Сервер відповів з помилкою.");
+    } catch (checkError) {
+      const message =
+        checkError instanceof Error ? checkError.message : "Невідома помилка";
+      setStatusType("error");
+      setStatusMessage(`Помилка зʼєднання: ${message}`);
+    }
+  };
+
+  return (
+    <main className="mx-auto max-w-3xl space-y-6 p-6 md:p-10">
+      <h1 className="text-3xl font-bold text-foreground">Налаштування</h1>
+
+      <section className="space-y-4 rounded-xl border border-border bg-card p-6">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-card-foreground" htmlFor="api-url">
+            API URL
+          </label>
+          <input
+            id="api-url"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+            value={apiUrl}
+            onChange={(event) => setApiUrl(event.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-card-foreground" htmlFor="api-token">
+            API Token
+          </label>
+          <input
+            id="api-token"
+            type="password"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+            value={apiToken}
+            onChange={(event) => setApiToken(event.target.value)}
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={save}
+            className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground"
+          >
+            Зберегти
+          </button>
+          <button
+            type="button"
+            onClick={() => void checkConnection()}
+            className="rounded-md border border-border bg-secondary px-4 py-2 font-medium text-secondary-foreground"
+          >
+            Перевірити зʼєднання
+          </button>
+        </div>
+
+        {statusMessage && (
+          <p
+            className={
+              statusType === "ok"
+                ? "text-sm text-primary"
+                : "text-sm text-destructive"
+            }
+          >
+            {statusMessage}
+          </p>
+        )}
+
+        <p className="text-xs text-muted-foreground">StudentFlow v1.0 · MIT License</p>
+      </section>
+    </main>
+  );
 }
 
 function App() {
-  const previewPath = getPreviewPath();
+  const [route, setRoute] = useState<RoutePath>(getRouteFromLocation());
 
-  if (previewPath) {
-    return (
-      <PreviewRenderer
-        componentPath={previewPath}
-        modules={discoveredModules}
-      />
-    );
-  }
+  useEffect(() => {
+    const onPopState = () => setRoute(getRouteFromLocation());
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
-  return <Gallery />;
+  const go = (path: RoutePath) => {
+    if (path === route) return;
+    window.history.pushState({}, "", path);
+    setRoute(path);
+  };
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur">
+        <nav className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-2 p-4 md:p-6">
+          {navItems.map((item) => (
+            <button
+              key={item.path}
+              type="button"
+              onClick={() => go(item.path)}
+              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                route === item.path
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      </header>
+
+      {route === "/" && <LandingPage />}
+      {route === "/dashboard" && <DashboardPage />}
+      {route === "/settings" && <SettingsPage />}
+    </div>
+  );
 }
 
 export default App;

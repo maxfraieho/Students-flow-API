@@ -10,10 +10,10 @@ name = "API Server"
 paths = ["/api"]
 
 [services.development]
-run = "pnpm --filter @workspace/api-server run dev"
+run = "npm run dev --workspace=@workspace/api-server"
 
 [services.production]
-build = "pnpm --filter @workspace/api-server run build"
+build = "npm run build --workspace=@workspace/api-server"
 
 [services.production.run]
 args = ["node", "artifacts/api-server/dist/index.cjs"]
