@@ -512,12 +512,39 @@ function StudentsPage() {
   });
 
   const activateMutation = useMutation({
-    mutationFn: activateStudent,
+    mutationFn: async (studentId: string) => {
+      try {
+        await activateStudent(studentId);
+      } catch (error) {
+        if (!(axios.isAxiosError(error) && error.response?.status === 409)) {
+          throw error;
+        }
+
+        const activeFromList = (studentsQuery.data || []).find(
+          (student) => student.status === "active" && student.id !== studentId,
+        );
+
+        const activeStudent = activeFromList || (await fetchActiveStudent());
+        if (activeStudent?.id && activeStudent.id !== studentId) {
+          await updateStudent({ id: activeStudent.id, status: "paused" });
+        }
+
+        await activateStudent(studentId);
+      }
+    },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["students"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["students"] }),
+        queryClient.invalidateQueries({ queryKey: ["students", "active"] }),
+      ]);
       showToast("Студента активовано");
     },
-    onError: () => showToast("Помилка активації", "error"),
+    onError: (error) => {
+      const detail = axios.isAxiosError(error)
+        ? (error.response?.data as { detail?: string } | undefined)?.detail
+        : undefined;
+      showToast(detail || "Помилка активації", "error");
+    },
   });
 
   const archiveMutation = useMutation({
