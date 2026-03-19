@@ -11,8 +11,14 @@ export function getRuntimeConfig() {
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1";
 
+  const normalizedStoredUrl = storedUrl?.replace(/\/$/, "") || "";
+  const normalizedOrigin = window.location.origin.replace(/\/$/, "");
+  const useStoredUrl = !(
+    isLocalDevHost && normalizedStoredUrl === normalizedOrigin
+  );
+
   const apiUrl =
-    storedUrl ||
+    (useStoredUrl ? normalizedStoredUrl : "") ||
     import.meta.env.VITE_API_URL ||
     (isLocalDevHost ? "http://127.0.0.1:8050" : window.location.origin);
 
