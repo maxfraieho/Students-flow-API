@@ -74,7 +74,6 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import LaunchIcon from "@mui/icons-material/Launch";
-import studentFlowLogo from "./assets/studentflow-logo.png";
 import type {
   Account,
   AuditItem,
@@ -1857,23 +1856,27 @@ function AppShell() {
 
   const drawerContent = (
     <Box sx={{ width: drawerWidth }}>
-      <Box
-        sx={{
-          px: 2,
-          py: 1.5,
-          minHeight: 72,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "flex-start",
-        }}
+      <Stack
+        direction="row"
+        spacing={1.25}
+        alignItems="center"
+        sx={{ px: 2, py: 1.5, minHeight: 72 }}
       >
-        <Box
-          component="img"
-          src={studentFlowLogo}
-          alt="StudentFlow — колективна робота та навчання з Lovable"
-          sx={{ width: 108, height: 40, objectFit: "contain" }}
-        />
-      </Box>
+        <Avatar
+          variant="rounded"
+          sx={{ width: 34, height: 34, bgcolor: "secondary.main", color: "secondary.contrastText" }}
+        >
+          <PeopleIcon fontSize="small" />
+        </Avatar>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
+            StudentFlow
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
+            Навчання з Lovable
+          </Typography>
+        </Box>
+      </Stack>
       <Divider />
       <List>
         {NAV_ITEMS.map((item) => (
