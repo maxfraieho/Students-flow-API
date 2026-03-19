@@ -78,3 +78,12 @@ def sync_student(student_id: str):
     except SyncError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return _job_dict(job)
+
+
+@router.post("/student/{student_id}/to-canonical")
+def sync_student_to_canonical(student_id: str):
+    try:
+        job = _svc.push_student_to_canonical(student_id)
+    except SyncError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return _job_dict(job)

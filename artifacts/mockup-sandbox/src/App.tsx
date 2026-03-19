@@ -120,6 +120,7 @@ import {
   setCurrentAccount,
   syncCurrentStudent,
   syncSpecificStudent,
+  syncStudentToCanonical,
   triggerHandoff,
   updateAccount,
   updateRepository,
@@ -566,6 +567,23 @@ function StudentsPage() {
     onError: () => showToast("Помилка bulk імпорту", "error"),
   });
 
+  const toCanonicalMutation = useMutation({
+    mutationFn: syncStudentToCanonical,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["sync", "jobs"] }),
+        queryClient.invalidateQueries({ queryKey: ["repositories"] }),
+      ]);
+      showToast("Завантажено в master репозиторій");
+    },
+    onError: (error) => {
+      const detail = axios.isAxiosError(error)
+        ? (error.response?.data as { detail?: string } | undefined)?.detail
+        : undefined;
+      showToast(detail || "Помилка вивантаження в master", "error");
+    },
+  });
+
   const filteredStudents = useMemo(() => {
     const query = search.trim().toLowerCase();
     return (studentsQuery.data || []).filter((student) => student.full_name.toLowerCase().includes(query));
@@ -649,15 +667,26 @@ function StudentsPage() {
                   <TableCell>{student.queue_position ?? "—"}</TableCell>
                   <TableCell>{student.notes?.slice(0, 60) || "—"}</TableCell>
                   <TableCell>
-                    <IconButton onClick={() => openEdit(student)}>
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton onClick={() => activateMutation.mutate(student.id)}>
-                      <PlayArrowIcon />
-                    </IconButton>
-                    <IconButton onClick={() => archiveMutation.mutate(student.id)}>
-                      <DeleteIcon />
-                    </IconButton>
+                    <Tooltip title="Редагувати">
+                      <IconButton onClick={() => openEdit(student)}>
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Синхронізувати з master">
+                      <IconButton onClick={() => activateMutation.mutate(student.id)}>
+                        <PlayArrowIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Вигрузити в master">
+                      <IconButton onClick={() => toCanonicalMutation.mutate(student.id)}>
+                        <UploadFileIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Архівувати">
+                      <IconButton onClick={() => archiveMutation.mutate(student.id)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}
@@ -1828,7 +1857,23 @@ function AppShell() {
 
   const drawerContent = (
     <Box sx={{ width: drawerWidth }}>
-      <Toolbar />
+      <Box
+        sx={{
+          px: 2,
+          py: 1.5,
+          minHeight: 72,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-start",
+        }}
+      >
+        <Box
+          component="img"
+          src={studentFlowLogo}
+          alt="StudentFlow — колективна робота та навчання з Lovable"
+          sx={{ width: 108, height: 40, objectFit: "contain" }}
+        />
+      </Box>
       <Divider />
       <List>
         {NAV_ITEMS.map((item) => (
@@ -1882,17 +1927,9 @@ function AppShell() {
               <MenuIcon />
             </IconButton>
           )}
-          <Stack direction="row" spacing={1.25} alignItems="center" sx={{ flexGrow: 1, minWidth: 0 }}>
-            <Box
-              component="img"
-              src={studentFlowLogo}
-              alt="StudentFlow — колективна робота та навчання з Lovable"
-              sx={{ width: 34, height: 34, objectFit: "contain", flexShrink: 0 }}
-            />
-            <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
-              StudentFlow
-            </Typography>
-          </Stack>
+          <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.1, flexGrow: 1 }}>
+            StudentFlow
+          </Typography>
           <LiveChip live={live} />
           <IconButton color="inherit" sx={{ ml: 1 }} onClick={() => navigate("/settings")}>
             <SettingsIcon />

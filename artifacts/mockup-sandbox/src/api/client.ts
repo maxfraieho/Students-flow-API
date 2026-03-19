@@ -199,4 +199,7 @@ export const syncCurrentStudent = async () => api.post("/api/sync/current");
 
 export const syncSpecificStudent = async (studentId: string) => api.post(`/api/sync/student/${studentId}`);
 
+export const syncStudentToCanonical = async (studentId: string) =>
+  api.post(`/api/sync/student/${studentId}/to-canonical`);
+
 export const triggerHandoff = async () => api.post("/api/handoff");
