@@ -253,6 +253,7 @@ function DashboardPage({ setLive }: { setLive: (v: boolean) => void }) {
 
   const studentsQuery = useQuery({ queryKey: ["students"], queryFn: () => fetchStudents() });
   const activeQuery = useQuery({ queryKey: ["students", "active"], queryFn: fetchActiveStudent });
+  const nextQuery = useQuery({ queryKey: ["students", "next"], queryFn: fetchNextStudent });
   const jobsQuery = useQuery({ queryKey: ["sync", "jobs"], queryFn: fetchSyncJobs, refetchInterval: 15000 });
   const canonicalQuery = useQuery({ queryKey: ["repositories", "canonical"], queryFn: fetchCanonicalRepository });
 
