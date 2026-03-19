@@ -120,6 +120,7 @@ import {
   setCurrentAccount,
   syncCurrentStudent,
   syncSpecificStudent,
+  syncStudentToCanonical,
   triggerHandoff,
   updateAccount,
   updateRepository,
