@@ -6,7 +6,7 @@ compatibility_date = "2025-01-01"
 # Публічний HTTPS-URL вашого cloudflared-тунелю → порт 8050 на Pi.
 # Приклад: "https://your-subdomain.trycloudflare.com"
 # Або ваш власний домен, прив'язаний через cloudflared.
-TUNNEL_URL = "https://your-pi-tunnel.example.com"
+TUNNEL_URL = "https://lovable.exodus.pp.ua"
 
 # Origin вашого Lovable-фронтенду (без слешу в кінці).
 # Приклад: "https://your-app.lovable.app"
