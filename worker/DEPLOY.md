@@ -71,6 +71,11 @@ https://studentflow-api-gateway.<your-subdomain>.workers.dev
 
 This is the URL your React frontend should send API requests to.
 
+**Live worker URL:**
+```
+https://studentflow-api-gateway.maxfraieho.workers.dev
+```
+
 ---
 
 ## 5. Test the Worker
