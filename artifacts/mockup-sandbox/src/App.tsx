@@ -567,6 +567,23 @@ function StudentsPage() {
     onError: () => showToast("Помилка bulk імпорту", "error"),
   });
 
+  const toCanonicalMutation = useMutation({
+    mutationFn: syncStudentToCanonical,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["sync", "jobs"] }),
+        queryClient.invalidateQueries({ queryKey: ["repositories"] }),
+      ]);
+      showToast("Завантажено в master репозиторій");
+    },
+    onError: (error) => {
+      const detail = axios.isAxiosError(error)
+        ? (error.response?.data as { detail?: string } | undefined)?.detail
+        : undefined;
+      showToast(detail || "Помилка вивантаження в master", "error");
+    },
+  });
+
   const filteredStudents = useMemo(() => {
     const query = search.trim().toLowerCase();
     return (studentsQuery.data || []).filter((student) => student.full_name.toLowerCase().includes(query));
