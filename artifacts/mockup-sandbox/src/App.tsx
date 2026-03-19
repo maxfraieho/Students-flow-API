@@ -247,6 +247,7 @@ function DashboardPage({ setLive }: { setLive: (v: boolean) => void }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [sseStudent, setSseStudent] = useState<Student | null>(null);
+  const [stableActiveStudent, setStableActiveStudent] = useState<Student | null>(null);
   const { toast, setToast, showToast } = useToast();
 
   const studentsQuery = useQuery({ queryKey: ["students"], queryFn: () => fetchStudents() });
@@ -263,6 +264,23 @@ function DashboardPage({ setLive }: { setLive: (v: boolean) => void }) {
       [setLive],
     ),
   );
+
+  useEffect(() => {
+    if (sseStudent) {
+      setStableActiveStudent(sseStudent);
+      return;
+    }
+
+    if (activeQuery.data) {
+      setStableActiveStudent(activeQuery.data);
+      return;
+    }
+
+    if (activeQuery.isFetched && !activeQuery.isFetching) {
+      const clearId = window.setTimeout(() => setStableActiveStudent(null), 1500);
+      return () => window.clearTimeout(clearId);
+    }
+  }, [sseStudent, activeQuery.data, activeQuery.isFetched, activeQuery.isFetching]);
 
   const syncCurrentMutation = useMutation({
     mutationFn: syncCurrentStudent,
@@ -298,7 +316,8 @@ function DashboardPage({ setLive }: { setLive: (v: boolean) => void }) {
     onError: () => showToast("Помилка запуску синхронізації", "error"),
   });
 
-  const activeStudent = sseStudent ?? activeQuery.data ?? null;
+  const activeStudent = sseStudent ?? activeQuery.data ?? stableActiveStudent ?? null;
+  const isLoadingActiveStudent = !activeStudent && !activeQuery.isFetched;
   const queue = useMemo(
     () =>
       (studentsQuery.data || [])
@@ -327,7 +346,7 @@ function DashboardPage({ setLive }: { setLive: (v: boolean) => void }) {
               Активний студент
             </Typography>
 
-            {activeQuery.isLoading ? (
+            {isLoadingActiveStudent ? (
               <LoadingState />
             ) : !activeStudent ? (
               <Alert severity="info">Немає активного студента</Alert>
