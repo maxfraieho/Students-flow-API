@@ -1,0 +1,8 @@
+# Wrangler build output
+.wrangler/
+dist/
+node_modules/
+
+# Local secrets file — never commit
+.dev.vars
+.env

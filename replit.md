@@ -1,96 +1,114 @@
-# Workspace
+# StudentFlow — Monorepo
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+Full-stack monorepo for **StudentFlow**:
 
-## Stack
+| Directory | Purpose |
+|-----------|---------|
+| `/` | React + Vite frontend — managed by Lovable.dev (root reserved for it) |
+| `/backend` | FastAPI Python backend — runs on Raspberry Pi |
+| `/worker` | Cloudflare Worker API gateway |
+| `/artifacts` | Replit JS artifacts (Express api-server, mockup-sandbox) — internal use |
+| `/lib` | Shared TypeScript libraries (Drizzle ORM, API spec, generated clients) |
+| `/scripts` | Utility scripts |
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+## Architecture
 
-## Structure
-
-```text
-artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
-│   ├── api-spec/           # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+```
+Browser (Lovable.dev React frontend)
+   │   Authorization: Bearer <OPERATOR_TOKEN>
+   ▼
+Cloudflare Worker  (/worker)          ← validates token, strips Auth header
+   │   HTTPS via cloudflared tunnel
+   ▼
+FastAPI backend  (/backend)           ← SQLite, OS keyring, GitPython
+   (Raspberry Pi, port 8000)
 ```
 
-## TypeScript & Composite Projects
+## Backend Stack (`/backend`)
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+- **FastAPI** + **Uvicorn** — REST API on port 8000
+- **SQLAlchemy** + SQLite at `~/.studentflow/studentflow.db`
+- **GitPython** + subprocess for all git operations
+- **OS keyring** (secretstorage/keyrings.cryptfile on Pi) for credentials
+- **structlog** for structured JSON logging
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+### Key endpoints
 
-## Root Scripts
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/sync/broadcast` | SSE stream: force-push canonical → all student repos |
+| POST | `/api/sync/current` | Sync current active student |
+| GET | `/api/students` | List all students |
+| GET | `/api/repositories` | List repositories |
+| POST | `/api/credentials` | Store a credential in OS keyring |
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+### Run locally (Replit)
 
-## Packages
+Use the **"Backend (FastAPI)"** workflow from the Replit toolbar, or:
 
-### `artifacts/api-server` (`@workspace/api-server`)
+```bash
+cd backend
+pip install -r requirements.txt
+python run.py          # uvicorn on port 8000
+```
 
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
+### Seed the database
 
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+```bash
+cd backend
+export GITHUB_TOKEN="YOUR_GITHUB_TOKEN_HERE"   # set in Replit Secrets, not here
+python -m app.db.seeds
+```
 
-### `lib/db` (`@workspace/db`)
+### Deploy to Raspberry Pi
 
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
+See `backend/SETUP_PI.md` for the full systemd service setup.
 
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
+## Worker Stack (`/worker`)
 
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
+- Validates `Authorization: Bearer` header against `OPERATOR_TOKEN` (Cloudflare Secret)
+- Proxies to `TUNNEL_URL` (cloudflared tunnel → Pi)
+- Adds CORS headers for `FRONTEND_URL` (Lovable.dev app origin)
 
-### `lib/api-spec` (`@workspace/api-spec`)
+### Deploy
 
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
+```bash
+cd worker
+# Edit wrangler.toml: set TUNNEL_URL + FRONTEND_URL
+wrangler secret put OPERATOR_TOKEN
+wrangler deploy
+```
 
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
+## Frontend Root (`/`)
 
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
+The repository root is reserved for a React/Vite frontend generated by Lovable.dev.
+Backend code is isolated in `/backend`; worker code is isolated in `/worker`.
 
-### `lib/api-zod` (`@workspace/api-zod`)
+## TypeScript / Node.js workspace
 
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
+- **pnpm workspaces** — Node.js 24, TypeScript 5.9
+- `artifacts/api-server` — Express 5 API server (internal / Replit)
+- `lib/db` — Drizzle ORM + PostgreSQL (for Replit JS artifacts)
+- `lib/api-spec` — OpenAPI spec + Orval codegen
 
-### `lib/api-client-react` (`@workspace/api-client-react`)
+## Environment Variables
 
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
+| Variable | Where | Purpose |
+|----------|-------|---------|
+| `GITHUB_TOKEN` | Replit Secrets + Pi env | GitHub PAT for seed + broadcast push |
+| `OPERATOR_TOKEN` | Cloudflare Worker Secret | Auth token validated by the Worker |
+| `TUNNEL_URL` | `worker/wrangler.toml [vars]` | cloudflared tunnel URL |
+| `FRONTEND_URL` | `worker/wrangler.toml [vars]` | Lovable app origin for CORS |
 
-### `scripts` (`@workspace/scripts`)
+> All secret values must be set via **Replit Secrets**, `wrangler secret put`, or a
+> local `.env` file that is git-ignored.  Never commit real values.
 
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+## Security Notes
+
+- `GITHUB_TOKEN` is read at runtime via `os.environ` in `backend/app/db/seeds.py`
+- No PAT or credential is ever hard-coded, logged, or committed
+- `.env` files are git-ignored at both root and `/backend` level
+- `worker/.dev.vars` is git-ignored (local Wrangler secret file)
+- The Worker strips the `Authorization` header before forwarding to the backend

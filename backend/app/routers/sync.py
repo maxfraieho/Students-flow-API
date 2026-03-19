@@ -1,11 +1,18 @@
-"""Sync router: trigger and monitor sync jobs."""
+"""Sync router: trigger and monitor sync jobs, broadcast canonical."""
 from __future__ import annotations
 from typing import Optional
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from app.services.sync_service import SyncError, SyncService
 
 router = APIRouter(prefix="/sync", tags=["sync"])
 _svc = SyncService()
+
+_SSE_HEADERS = {
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no",
+}
 
 
 def _job_dict(j) -> dict:
@@ -23,6 +30,30 @@ def _job_dict(j) -> dict:
         "commit_hash_after": j.commit_hash_after,
         "created_at": j.created_at.isoformat() if j.created_at else None,
     }
+
+
+@router.get("/broadcast")
+def broadcast_canonical():
+    """
+    Stream a broadcast of the canonical repo to all active student repos.
+
+    Returns a text/event-stream response.  Each SSE event carries a JSON
+    payload describing progress::
+
+        data: {"event": "processing", "student": "Alice", "index": 1, "total": 20}
+
+        data: {"event": "done", "student": "Alice", "index": 1, "status": "success", "commit": "a1b2c3d4"}
+
+        data: {"event": "broadcast_complete", "total": 20, "succeeded": 19, "failed": 1}
+
+    The Cloudflare Worker must **not** buffer this response — it is already
+    flushed as true SSE (``data: ...\\n\\n`` framing).
+    """
+    return StreamingResponse(
+        _svc.broadcast_canonical_stream(),
+        media_type="text/event-stream",
+        headers=_SSE_HEADERS,
+    )
 
 
 @router.get("/jobs")

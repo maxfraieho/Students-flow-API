@@ -53,7 +53,7 @@ python - <<'EOF'
 from app.security.vault import SecretVault
 v = SecretVault()
 # GitHub PAT for student account
-v.set("studentflow:github:student-username:acc-uuid8", "ghp_YOUR_TOKEN_HERE")
+v.set("studentflow:github:student-username:acc-uuid8", "YOUR_GITHUB_TOKEN_HERE")
 print("Stored OK")
 EOF
 ```
@@ -62,7 +62,7 @@ You can also POST to `/api/credentials` once the server is running:
 ```bash
 curl -X POST http://localhost:8000/api/credentials \
   -H "Content-Type: application/json" \
-  -d '{"account_id":"<account_uuid>","secret_kind":"pat","value":"ghp_..."}'
+  -d '{"account_id":"<account_uuid>","secret_kind":"pat","value":"YOUR_GITHUB_TOKEN_HERE"}'
 ```
 
 ## 6. Configure the cloudflared tunnel

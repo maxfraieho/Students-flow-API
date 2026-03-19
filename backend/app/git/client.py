@@ -158,6 +158,22 @@ class GitClient:
     def reset_hard(self, repo_path: str, ref: str = "HEAD") -> None:
         self._run_command(["git", "-C", repo_path, "reset", "--hard", ref])
 
+    def ensure_remote(self, repo_path: str, remote_name: str, remote_url: str) -> None:
+        """Add *remote_name* if it does not exist, or update its URL if it does."""
+        result = subprocess.run(
+            ["git", "-C", repo_path, "remote"],
+            capture_output=True, text=True, timeout=self._timeout,
+        )
+        existing = result.stdout.strip().splitlines()
+        if remote_name in existing:
+            self._run_command(
+                ["git", "-C", repo_path, "remote", "set-url", remote_name, remote_url]
+            )
+        else:
+            self._run_command(
+                ["git", "-C", repo_path, "remote", "add", remote_name, remote_url]
+            )
+
     def get_log(self, repo_path: str, limit: int = 10) -> list[dict]:
         repo = self._open_repo(repo_path)
         commits = []
