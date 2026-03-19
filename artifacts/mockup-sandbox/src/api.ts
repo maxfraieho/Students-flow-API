@@ -3,6 +3,7 @@ import type { HealthResponse, Student, SyncCurrentResponse } from "./types";
 const API_URL_KEY = "sf_api_url";
 const API_TOKEN_KEY = "sf_api_token";
 const DEFAULT_API_URL = "https://studentflow-api-gateway.maxfraieho.workers.dev";
+const LOCAL_DEV_API_URL = "http://127.0.0.1:8050";
 
 export function getRuntimeConfig() {
   const storedUrl = localStorage.getItem(API_URL_KEY)?.trim();
@@ -16,13 +17,19 @@ export function getRuntimeConfig() {
   const normalizedOrigin = window.location.origin.replace(/\/$/, "");
   const useStoredUrl =
     normalizedStoredUrl.length > 0 && normalizedStoredUrl !== normalizedOrigin;
+  const resolvedToken = storedToken || import.meta.env.VITE_API_TOKEN || "";
 
-  const apiUrl =
+  let apiUrl =
     (useStoredUrl ? normalizedStoredUrl : "") ||
     import.meta.env.VITE_API_URL ||
-    (isLocalDevHost ? "http://127.0.0.1:8050" : DEFAULT_API_URL);
+    (isLocalDevHost ? LOCAL_DEV_API_URL : DEFAULT_API_URL);
 
-  const apiToken = storedToken || import.meta.env.VITE_API_TOKEN || "";
+  // In local dev, missing token most often means "use local backend without auth".
+  if (isLocalDevHost && !resolvedToken) {
+    apiUrl = LOCAL_DEV_API_URL;
+  }
+
+  const apiToken = resolvedToken;
 
   return { apiUrl: apiUrl.replace(/\/$/, ""), apiToken };
 }
