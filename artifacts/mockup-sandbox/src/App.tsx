@@ -334,11 +334,24 @@ function DashboardPage({ go }: { go: (path: RoutePath) => void }) {
 
     es.onmessage = (event) => {
       try {
-        const payload = JSON.parse(event.data) as Student | { active_student?: Student | null };
-        if ("active_student" in payload) {
-          setActiveStudent(payload.active_student ?? null);
-        } else {
-          setActiveStudent(payload);
+        const payload: unknown = JSON.parse(event.data);
+
+        if (
+          typeof payload === "object" &&
+          payload !== null &&
+          "active_student" in payload
+        ) {
+          const next = (payload as { active_student?: Student | null }).active_student;
+          setActiveStudent(next ?? null);
+          return;
+        }
+
+        if (
+          typeof payload === "object" &&
+          payload !== null &&
+          "id" in payload
+        ) {
+          setActiveStudent(payload as Student);
         }
       } catch {
         // ignore parse errors from invalid SSE payloads
