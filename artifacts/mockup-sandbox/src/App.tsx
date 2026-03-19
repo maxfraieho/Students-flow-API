@@ -249,6 +249,7 @@ function DashboardPage({ setLive }: { setLive: (v: boolean) => void }) {
   const navigate = useNavigate();
   const [sseStudent, setSseStudent] = useState<Student | null>(null);
   const [stableActiveStudent, setStableActiveStudent] = useState<Student | null>(null);
+  const [selectedOwnerStudentId, setSelectedOwnerStudentId] = useState<string>("");
   const { toast, setToast, showToast } = useToast();
 
   const studentsQuery = useQuery({ queryKey: ["students"], queryFn: () => fetchStudents() });
@@ -352,6 +353,24 @@ function DashboardPage({ setLive }: { setLive: (v: boolean) => void }) {
     onError: () => showToast("Помилка запуску синхронізації", "error"),
   });
 
+  const pushToMasterMutation = useMutation({
+    mutationFn: syncStudentToCanonical,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["sync", "jobs"] }),
+        queryClient.invalidateQueries({ queryKey: ["repositories"] }),
+        queryClient.invalidateQueries({ queryKey: ["repositories", "canonical"] }),
+      ]);
+      showToast("Репозиторій студента вивантажено в майстер");
+    },
+    onError: (error) => {
+      const detail = axios.isAxiosError(error)
+        ? (error.response?.data as { detail?: string } | undefined)?.detail
+        : undefined;
+      showToast(detail || "Помилка вивантаження в майстер", "error");
+    },
+  });
+
   const activeStudent = sseStudent ?? activeQuery.data ?? stableActiveStudent ?? null;
   const isLoadingActiveStudent = !activeStudent && !activeQuery.isFetched;
   const queue = useMemo(
@@ -361,6 +380,21 @@ function DashboardPage({ setLive }: { setLive: (v: boolean) => void }) {
         .sort((a, b) => (a.queue_position || 0) - (b.queue_position || 0)),
     [studentsQuery.data],
   );
+
+  useEffect(() => {
+    if (!queue.length) {
+      if (selectedOwnerStudentId) {
+        setSelectedOwnerStudentId("");
+      }
+      return;
+    }
+
+    const stillExists = queue.some((student) => student.id === selectedOwnerStudentId);
+    if (!selectedOwnerStudentId || !stillExists) {
+      setSelectedOwnerStudentId(queue[0].id);
+    }
+  }, [queue, selectedOwnerStudentId]);
+
   const hasNextStudent =
     Boolean(nextQuery.data?.id) ||
     queue.some((student) => student.status === "paused" && student.id !== activeStudent?.id);
@@ -514,6 +548,42 @@ function DashboardPage({ setLive }: { setLive: (v: boolean) => void }) {
               <Typography variant="body2" color="text.secondary">
                 Канонічне репо не налаштоване
               </Typography>
+            )}
+          </Paper>
+
+          <Paper sx={{ p: 2.5 }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
+              Інтерфейс власника
+            </Typography>
+            {!queue.length ? (
+              <Alert severity="info">Немає студентів для вивантаження в майстер</Alert>
+            ) : (
+              <Stack spacing={1.5}>
+                <FormControl size="small" fullWidth>
+                  <InputLabel id="owner-student-select-label">Репозиторій студента</InputLabel>
+                  <Select<string>
+                    labelId="owner-student-select-label"
+                    value={selectedOwnerStudentId}
+                    label="Репозиторій студента"
+                    onChange={(event) => setSelectedOwnerStudentId(event.target.value)}
+                  >
+                    {queue.map((student) => (
+                      <MenuItem key={student.id} value={student.id}>
+                        {student.full_name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <Button
+                  variant="contained"
+                  startIcon={<UploadFileIcon />}
+                  disabled={!selectedOwnerStudentId || pushToMasterMutation.isPending}
+                  onClick={() => pushToMasterMutation.mutate(selectedOwnerStudentId)}
+                >
+                  Завантажити в майстер репозиторій
+                </Button>
+              </Stack>
             )}
           </Paper>
         </Stack>
