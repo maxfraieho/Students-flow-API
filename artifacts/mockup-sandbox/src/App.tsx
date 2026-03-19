@@ -1698,6 +1698,17 @@ function SettingsPage() {
 
   const backendSettingsQuery = useQuery({ queryKey: ["settings"], queryFn: fetchBackendSettings });
 
+  const SETTINGS_LABELS: Record<string, string> = {
+    auto_sync_interval_minutes: "Інтервал автосинхронізації (хв)",
+    canonical_remote_url: "Remote URL master репозиторію",
+    canonical_repo_path: "Локальний шлях master репозиторію",
+    default_branch: "Гілка за замовчуванням",
+    enable_auto_sync: "Увімкнути автосинхронізацію",
+    max_sync_retries: "Максимум повторних sync-спроб",
+    sync_timeout_seconds: "Таймаут sync (сек)",
+    template_dir: "Каталог шаблонів",
+  };
+
   useEffect(() => {
     const nextValues: Record<string, string> = {};
     (backendSettingsQuery.data || []).forEach((setting: SettingItem) => {
@@ -1736,45 +1747,7 @@ function SettingsPage() {
         <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
           API з'єднання
         </Typography>
-        <Stack spacing={1.5}>
-          <TextField label="API URL" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} />
-          <TextField
-            label="API Token"
-            type={showToken ? "text" : "password"}
-            value={apiToken}
-            onChange={(e) => setApiToken(e.target.value)}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton onClick={() => setShowToken((v) => !v)}>
-                    {showToken ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-          <Stack direction="row" spacing={1}>
-            <Button
-              variant="contained"
-              onClick={() => {
-                saveRuntimeConfig(apiUrl, apiToken);
-                showToast("Конфігурацію збережено");
-              }}
-            >
-              Зберегти
-            </Button>
-            <Button variant="outlined" onClick={() => checkMutation.mutate()}>
-              Перевірити з'єднання
-            </Button>
-          </Stack>
-        </Stack>
-      </Paper>
-
-      <Paper sx={{ p: 2.5 }}>
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
-          Налаштування бекенду
-        </Typography>
-
+...
         {backendSettingsQuery.isLoading ? (
           <LoadingState />
         ) : backendSettingsQuery.error ? (
@@ -1785,7 +1758,12 @@ function SettingsPage() {
           <Stack spacing={1}>
             {(backendSettingsQuery.data || []).map((setting) => (
               <Stack key={setting.key} direction={{ xs: "column", md: "row" }} spacing={1} alignItems={{ md: "center" }}>
-                <Typography sx={{ width: { md: 220 }, fontWeight: 600 }}>{setting.key}</Typography>
+                <Box sx={{ width: { md: 280 } }}>
+                  <Typography sx={{ fontWeight: 600 }}>{SETTINGS_LABELS[setting.key] || setting.key}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {setting.key}
+                  </Typography>
+                </Box>
                 <TextField
                   size="small"
                   fullWidth
