@@ -1,0 +1,17 @@
+name = "studentflow-api-gateway"
+main = "worker.js"
+compatibility_date = "2024-03-19"
+
+[vars]
+# The public HTTPS URL of your cloudflared tunnel pointing to your Raspberry Pi FastAPI server.
+# Example: "https://your-subdomain.trycloudflare.com"
+TUNNEL_URL = "https://your-pi-tunnel.trycloudflare.com"
+
+# The origin of your Lovable.dev frontend (no trailing slash).
+# Only requests from this origin will receive CORS headers.
+# Example: "https://your-app.lovable.app"
+FRONTEND_URL = "https://your-lovable-app.lovable.app"
+
+# OPERATOR_TOKEN is a SECRET — do NOT add it here.
+# Add it via: wrangler secret put OPERATOR_TOKEN
+# Or via the Cloudflare Dashboard → Workers → studentflow-api-gateway → Settings → Variables → Secret Variables.
