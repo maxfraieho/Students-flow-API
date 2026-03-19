@@ -2,6 +2,7 @@ import type { HealthResponse, Student, SyncCurrentResponse } from "./types";
 
 const API_URL_KEY = "sf_api_url";
 const API_TOKEN_KEY = "sf_api_token";
+const DEFAULT_API_URL = "https://studentflow-api-gateway.maxfraieho.workers.dev";
 
 export function getRuntimeConfig() {
   const storedUrl = localStorage.getItem(API_URL_KEY)?.trim();
@@ -13,14 +14,13 @@ export function getRuntimeConfig() {
 
   const normalizedStoredUrl = storedUrl?.replace(/\/$/, "") || "";
   const normalizedOrigin = window.location.origin.replace(/\/$/, "");
-  const useStoredUrl = !(
-    isLocalDevHost && normalizedStoredUrl === normalizedOrigin
-  );
+  const useStoredUrl =
+    normalizedStoredUrl.length > 0 && normalizedStoredUrl !== normalizedOrigin;
 
   const apiUrl =
     (useStoredUrl ? normalizedStoredUrl : "") ||
     import.meta.env.VITE_API_URL ||
-    (isLocalDevHost ? "http://127.0.0.1:8050" : window.location.origin);
+    (isLocalDevHost ? "http://127.0.0.1:8050" : DEFAULT_API_URL);
 
   const apiToken = storedToken || import.meta.env.VITE_API_TOKEN || "";
 
