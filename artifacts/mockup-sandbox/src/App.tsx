@@ -360,8 +360,7 @@ function App() {
         </nav>
       </header>
 
-      {route === "/" && <LandingPage />}
-      {route === "/dashboard" && <DashboardPage />}
+      {(route === "/" || route === "/dashboard") && <DashboardPage />}
       {route === "/settings" && <SettingsPage />}
     </div>
   );
