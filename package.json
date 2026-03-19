@@ -5,10 +5,10 @@
   "scripts": {
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
     "dev": "corepack pnpm --filter @workspace/mockup-sandbox run dev",
-    "build": "corepack pnpm run typecheck && corepack pnpm -r --if-present run build",
-    "build:dev": "corepack pnpm --filter @workspace/mockup-sandbox run build",
+    "build": "bash ./scripts/build-web.sh",
+    "build:dev": "bash ./scripts/build-web.sh",
     "typecheck:libs": "tsc --build",
-    "typecheck": "corepack pnpm run typecheck:libs && corepack pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "typecheck": "tsc --build"
   },
   "private": true,
   "devDependencies": {
