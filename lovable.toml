@@ -1,0 +1,2 @@
+[run]
+dev = "npm run dev --workspace=@workspace/mockup-sandbox"
