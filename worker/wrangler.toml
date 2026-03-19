@@ -10,7 +10,7 @@ TUNNEL_URL = "https://lovable.exodus.pp.ua"
 
 # Origin вашого Lovable-фронтенду (без слешу в кінці).
 # Приклад: "https://your-app.lovable.app"
-FRONTEND_URL = "https://your-lovable-app.lovable.app"
+FRONTEND_URL = "https://simple-center-wave.lovable.app"
 
 # OPERATOR_TOKEN — це SECRET, НЕ додавайте його сюди.
 # Dashboard: Workers → studentflow-api-gateway → Settings → Variables → Secret Variables
