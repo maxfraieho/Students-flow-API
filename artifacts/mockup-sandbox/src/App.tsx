@@ -1927,17 +1927,9 @@ function AppShell() {
               <MenuIcon />
             </IconButton>
           )}
-          <Stack direction="row" spacing={1.25} alignItems="center" sx={{ flexGrow: 1, minWidth: 0 }}>
-            <Box
-              component="img"
-              src={studentFlowLogo}
-              alt="StudentFlow — колективна робота та навчання з Lovable"
-              sx={{ width: 34, height: 34, objectFit: "contain", flexShrink: 0 }}
-            />
-            <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
-              StudentFlow
-            </Typography>
-          </Stack>
+          <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.1, flexGrow: 1 }}>
+            StudentFlow
+          </Typography>
           <LiveChip live={live} />
           <IconButton color="inherit" sx={{ ml: 1 }} onClick={() => navigate("/settings")}>
             <SettingsIcon />
