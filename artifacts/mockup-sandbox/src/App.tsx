@@ -1211,6 +1211,20 @@ function RepositoriesPage() {
   const reposQuery = useQuery({ queryKey: ["repositories"], queryFn: fetchRepositories });
   const studentsQuery = useQuery({ queryKey: ["students"], queryFn: () => fetchStudents() });
   const canonicalQuery = useQuery({ queryKey: ["repositories", "canonical"], queryFn: fetchCanonicalRepository });
+  const canonicalSettingsQuery = useQuery({
+    queryKey: ["settings", "canonical"],
+    queryFn: fetchBackendSettings,
+  });
+
+  const canonicalSettings = useMemo(() => {
+    const list = canonicalSettingsQuery.data || [];
+    const getValue = (key: string) => list.find((item) => item.key === key)?.value || "";
+    return {
+      remoteUrl: getValue("canonical_remote_url"),
+      localPath: getValue("canonical_repo_path"),
+      branch: getValue("default_branch") || "main",
+    };
+  }, [canonicalSettingsQuery.data]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -1259,6 +1273,8 @@ function RepositoriesPage() {
     setDialogOpen(true);
   };
 
+  const hasCanonicalFallback = Boolean(canonicalSettings.localPath || canonicalSettings.remoteUrl);
+
   return (
     <Stack spacing={2}>
       <Stack direction={{ xs: "column", md: "row" }} spacing={1.5}>
@@ -1269,26 +1285,34 @@ function RepositoriesPage() {
           Оновити
         </Button>
         <Button variant="outlined" onClick={() => setShowCanonical((v) => !v)}>
-          Canonical репо
+          Master репозиторій
         </Button>
       </Stack>
 
       {showCanonical && (
         <Accordion defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography sx={{ fontWeight: 700 }}>Канонічне репо</Typography>
+            <Typography sx={{ fontWeight: 700 }}>Master репозиторій</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            {canonicalQuery.isLoading ? (
+            {canonicalQuery.isLoading || canonicalSettingsQuery.isLoading ? (
               <CircularProgress size={18} />
             ) : canonicalQuery.data ? (
               <Stack spacing={1}>
-                <Typography>Path: {canonicalQuery.data.local_path || "—"}</Typography>
-                <Typography>Branch: {canonicalQuery.data.branch || canonicalQuery.data.default_branch || "—"}</Typography>
-                <Typography>Last sync: {formatDate(canonicalQuery.data.updated_at)}</Typography>
+                <Typography>Локальний шлях: {canonicalQuery.data.local_path || "—"}</Typography>
+                <Typography>Remote URL: {canonicalQuery.data.remote_url || canonicalSettings.remoteUrl || "—"}</Typography>
+                <Typography>Гілка: {canonicalQuery.data.branch || canonicalQuery.data.default_branch || canonicalSettings.branch || "—"}</Typography>
+                <Typography>Остання синхронізація: {formatDate(canonicalQuery.data.updated_at)}</Typography>
+              </Stack>
+            ) : hasCanonicalFallback ? (
+              <Stack spacing={1}>
+                <Typography>Локальний шлях: {canonicalSettings.localPath || "—"}</Typography>
+                <Typography>Remote URL: {canonicalSettings.remoteUrl || "—"}</Typography>
+                <Typography>Гілка: {canonicalSettings.branch || "—"}</Typography>
+                <Typography color="text.secondary">Показано із системних налаштувань (запис репозиторію ще не ініціалізований).</Typography>
               </Stack>
             ) : (
-              <Typography color="text.secondary">Немає даних канонічного репо</Typography>
+              <Typography color="text.secondary">Немає даних master репозиторію</Typography>
             )}
           </AccordionDetails>
         </Accordion>
@@ -1674,6 +1698,17 @@ function SettingsPage() {
 
   const backendSettingsQuery = useQuery({ queryKey: ["settings"], queryFn: fetchBackendSettings });
 
+  const SETTINGS_LABELS: Record<string, string> = {
+    auto_sync_interval_minutes: "Інтервал автосинхронізації (хв)",
+    canonical_remote_url: "Remote URL master репозиторію",
+    canonical_repo_path: "Локальний шлях master репозиторію",
+    default_branch: "Гілка за замовчуванням",
+    enable_auto_sync: "Увімкнути автосинхронізацію",
+    max_sync_retries: "Максимум повторних sync-спроб",
+    sync_timeout_seconds: "Таймаут sync (сек)",
+    template_dir: "Каталог шаблонів",
+  };
+
   useEffect(() => {
     const nextValues: Record<string, string> = {};
     (backendSettingsQuery.data || []).forEach((setting: SettingItem) => {
@@ -1761,7 +1796,12 @@ function SettingsPage() {
           <Stack spacing={1}>
             {(backendSettingsQuery.data || []).map((setting) => (
               <Stack key={setting.key} direction={{ xs: "column", md: "row" }} spacing={1} alignItems={{ md: "center" }}>
-                <Typography sx={{ width: { md: 220 }, fontWeight: 600 }}>{setting.key}</Typography>
+                <Box sx={{ width: { md: 280 } }}>
+                  <Typography sx={{ fontWeight: 600 }}>{SETTINGS_LABELS[setting.key] || setting.key}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {setting.key}
+                  </Typography>
+                </Box>
                 <TextField
                   size="small"
                   fullWidth
