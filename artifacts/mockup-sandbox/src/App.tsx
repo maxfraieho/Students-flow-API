@@ -103,6 +103,7 @@ import {
   fetchBackendSettings,
   fetchCanonicalRepository,
   fetchCredentials,
+  fetchNextStudent,
   fetchPromptById,
   fetchPrompts,
   fetchRepositories,
